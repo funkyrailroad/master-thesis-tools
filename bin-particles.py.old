@@ -1,0 +1,219 @@
+#!/usr/bin/env python
+
+'''
+This has the beginnings of the n-dimensional implementation of the cell-linked
+list. I gave up on it, but in case I want to come back to it, here it is
+NEED TO ENFORCE PERIODIC BOUNDARY CONDITIONS ON THE POSITION
+This only works for 2d
+'''
+
+from functions import *
+import argparse
+import h5py
+import math
+import matplotlib.patches as patches
+import matplotlib.pyplot as plt
+import numpy as np
+import sys
+from numpy import linalg as LA
+
+def plot_simulation_box_border(box):
+    x = 1
+    
+        
+def plot_cells(box, cell_length):
+    for i in range(int( box[0] / cell_length )):
+        if i == 0:
+            continue
+        plt.axhline(i *cell_length - box[0] / 2 )
+        plt.axvline(i *cell_length - box[0] / 2 )
+
+def plot_periodic_contour_2d(box, avg_rho_reshaped, cell_length):
+    xlist_pad = np.arange( -box[0] / 2. - cell_length - box[0],
+            box[0] / 2. + box[0] + cell_length,  cell_length )
+    ylist_pad = np.arange( -box[1] / 2. - cell_length - box[1],
+            box[1] / 2. + box[1] + cell_length,  cell_length )
+    X_pad, Y_pad = np.meshgrid(xlist_pad, ylist_pad)
+    X_pad += 0.5 * cell_length
+    Y_pad += 0.5 * cell_length
+
+    big_rho = np.concatenate((avg_rho_reshaped, avg_rho_reshaped, avg_rho_reshaped), axis = 0)
+    big_rho = np.concatenate((big_rho, big_rho, big_rho), axis = 1)
+
+    big_rho_pad = np.zeros(np.array(big_rho.shape) + 2)
+    big_rho_pad[1:-1,1:-1] = big_rho
+    plt.contourf(X_pad, Y_pad, big_rho_pad)
+    cax = plt.axes([0.90, 0.1, 0.025, 0.8])
+    plt.colorbar(cax=cax)
+
+def get_cell_index(particle, box, cell_length):
+    ''' for square/cubic cells and boxes, and cell indicies referring to a 1D array '''
+
+    side = box[0]
+    dims = len(box)
+    # ncells is the cells per side
+    ncells = math.floor( side / cell_length ) 
+
+    if len(particle) != len(box):
+        print "\nERROR: box and particle coordinates have different dimensions.\n"
+        exit()
+    if ncells != side / cell_length:
+        print "\nERROR! the box length is not an exact multiple of the cell length!\n"
+        exit()
+
+    index = 0
+    for i in range(len(box)):
+        next_increment = math.floor( 1 / cell_length * ( particle[i] + 0.5
+            * box[i]) ) * ncells ** i 
+        index += next_increment
+
+    return int(index)
+
+def get_cell_index_tuple(particle, box, cell_length):
+    ''' for square/cubic cells and boxes, and cell indicies referring to a
+    n-dimensional array '''
+    side = box[0]
+    dims = len(box)
+    # ncells is the cells per side
+    ncells = math.floor( side / cell_length ) 
+
+    if len(particle) != len(box):
+        print "\nERROR: box and particle coordinates have different dimensions.\n"
+        exit()
+    if ncells != side / cell_length:
+        print "\nERROR! the box length is not an exact multiple of the cell length!\n"
+        exit()
+    
+    index = [0]*dims
+    for i in index:
+        i = math.floor( 1 / cell_length * particle[i] + 0.5 * box[i] ) * ncells ** i
+
+    return tuple(index)
+
+
+
+def main(filenames):
+    for filename in filenames:
+
+        box = get_box_dims(filename)
+        p_step, p_time, position     =  get_position_data(filename)
+        o_step, o_time, orientation  =  get_orientation_data(filename)
+        v_step, v_time, velocity     =  get_velocity_data(filename)
+        bounded_position = enforce_periodic_boundary_conditions(position, box)
+        dims = get_dimension(filename)
+
+        nsteps = position.shape[0]
+        nparticles = position.shape[1]
+
+        cell_length = 0.2 
+        ncells = int(math.floor( box[0] / cell_length ))
+
+
+        for (t, timestep) in enumerate(position):
+            cells = -np.ones( ncells ** dims , dtype = int )
+            particles = -np.ones( nparticles , dtype = int )
+
+            ndcells = -np.ones( np.append([ncells] * dims, dims), dtype = int )
+            ndparticles = -np.ones( (nparticles, dims) , dtype = int)
+
+            # making the cell lists
+            for ( p, particle ) in enumerate( timestep ):
+                #for 1d cell linked-list
+                cell_index           = get_cell_index(particle, box, cell_length)
+                particles[p]         = cells[ cell_index ]
+                cells[ cell_index ]  = p
+
+
+                # for n-d cell linked-list
+                #print get_cell_index_tuple(particle, box, cell_length)
+                ndcell_index           = get_cell_index_tuple(particle, box, cell_length)
+                ndparticles[p]         = ndcells[ ndcell_index ]
+                ndcells[ ndcell_index ]= p
+
+        # After this  point, I will have the cell-linked lists for every
+        # timestep
+
+        # what I need is the average velocity (direction) and density for each
+        # cell. Whether I time average first or do this and then time average
+        # doesn't matter, at least not for the programming but also shouldn't
+        # matter from the math side of things
+
+        # for the averaging, I could go two ways:
+        # 1. simply go through  the particle list, have a average velocity and
+        # average density array whose elements correspond to each cell, and add
+        # the relevant values to the relevant variables, and then divide by
+        # how many times I've done that. 
+        # I'd have to keep track of how many particles are in each box.
+
+        # If I use the cell-linked lists, I can loop through the cells 
+        # instead of the particles. This way I'll finish the averages for the
+        # cells one at a time, and won't have to keep track of how many
+        # particles are in each box. 
+    
+
+        # Although, if I have two arrays, one with the summed values and one
+        # with the number of particles in each box, dividing them as vectors
+        # is more efficient than looping.
+
+        # Using the lists!
+
+        # I need the avg_v and avg_rho for each cell, and the coordinates of
+        # the middle of each cell
+            avg_v   = np.zeros( ( cells.shape[0], dims) )
+            avg_rho = np.zeros( cells.shape )
+
+            # calculating the average velocity and density of each cell
+            for (c, cell)  in enumerate( cells ):
+                # next more recent particle added to the box
+                nmr_part = cell
+                nparticles_in_box = 0
+                while nmr_part != -1:
+                    print nmr_part
+                    avg_v[c] += orientation[t, nmr_part]
+                    nparticles_in_box += 1
+                    nmr_part = particles[ nmr_part ]
+
+                if nparticles_in_box != 0:
+                    avg_rho[c] = nparticles_in_box / cell_length ** dims
+                    avg_v[c]  /= nparticles_in_box
+
+            avg_rho_reshaped =  avg_rho.reshape((ncells, ncells))
+            avg_v =  avg_v.reshape((ncells, ncells, dims))
+
+            for y in range(len(avg_rho_reshaped)):
+                for x in range(len(avg_rho_reshaped[y])):
+                    if avg_rho_reshaped[y,x] != avg_rho[x + y * ncells]:
+                        print "ERROR: the reshaped avg_rho array doesn't match\
+                        up with the original"
+                        exit()
+                    #if (x + y * ncells) == 10:
+                        #exit()
+
+
+
+            # In order to use the contour plot, X and Y will correspond to the
+            # center points of each bin, and Z will be the value of v_avg or
+            # rho_avg
+
+
+            if dims == 2:
+
+                fig = plt.figure()
+                ax = fig.add_subplot(111)
+                plot_periodic_contour_2d(box, avg_rho_reshaped, cell_length)
+                plt.axes().set_aspect('equal')
+                plot_cells(box, cell_length)
+                ax.add_patch(patches.Rectangle( -box / 2, *box, fill = False, color = 'r'))
+                plot_simulation_box_border(box)
+                for part in timestep:
+                    plt.scatter(*part, color = 'k')
+                plt.show() 
+                exit()
+
+
+
+
+
+if __name__ == '__main__':
+    main(sys.argv[1:])
+

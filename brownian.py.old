@@ -1,0 +1,130 @@
+#!/usr/bin/python
+'''
+The current condition of this code requires specific input. An equal number of
+gpu and host files are to be supplied as arguments with the gpu files first
+and the host files immediately after.
+'''
+
+
+import sys
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
+from math import log10, floor
+
+def round_to_n(x, n): 
+    return round(x, -int(floor(log10(x))) + (n - 1))
+
+def lin_fit(x, a, b):
+    return a*x + b
+
+def logy_func(x, a, b):
+    return a*np.exp(- b*x)
+
+
+def clean_data(filename, len_of_vars):
+    data = np.transpose(np.genfromtxt(filename, usecols=(0, 1, 4,
+        5))[:len_of_vars])
+    time, msd, d_msd, ocf = data
+    #msd[1:] = msd[1:]/time[1:]
+    #d_msd[1:] = d_msd[1:]/time[1:]
+
+    return time, msd, d_msd, ocf
+
+def calc_data(data):
+    return new_data
+
+
+def logy_fit(x, y):
+    '''
+    pcov is useless right now because of the transform of the first optimal
+    parameter
+    '''
+
+    logy = np.log(y)
+    logy = np.nan_to_num(logy)
+    popt, pcov = curve_fit(lin_fit, x, logy)
+    dummy = popt[1]
+    popt[1] = popt[0]
+    popt[0] = np.exp(dummy)
+    return popt, pcov
+
+
+def plot_data(x, y, title=None, xlabel=None, ylabel=None, legend=None,
+        xscale='linear', yscale='linear', legend_loc=None):
+
+    lineObjects = plt.plot(x, y)
+    plt.title(title)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.xscale(xscale)
+    plt.yscale(yscale)
+    plt.legend(lineObjects, legend, loc = legend_loc)
+
+
+num_of_vars = 4
+num_of_files = len(sys.argv) - 1
+runs = num_of_files / 2
+
+len_of_vars = 2000
+data = np.zeros((num_of_vars, num_of_files, len_of_vars))
+
+for a, arg in enumerate(sys.argv[1:]):
+    print arg
+    data[:,a] = clean_data(arg, len_of_vars)
+
+data = np.nan_to_num(data)
+time, msd, d_msd, ocf = data
+
+gpu = range(0, runs)
+host= range(runs, num_of_files)
+
+
+
+
+
+###################
+## Plotting
+###################
+
+plt.figure()
+
+x = time[0]
+D = 1   #diffusion constant
+plt.plot(x, np.exp(- 1. * D * x)) # prefactor is -1 for 2d, -2 for 3d
+
+plot_data(time[:runs].T, ocf[:runs].T, "GPU Side OCF",
+    "Time", "OCF", ['$\Delta t$ = 0.0001', '$\Delta t$ = 0.001', '$\Delta t$ = 0.01'], 'log', legend_loc = 'lower left')
+
+plt.savefig("ocf_gpu.png")
+plt.show()
+
+plt.figure()
+plot_data(time[runs:].T, ocf[runs:].T, "Host Side",
+    "Time", "OCF", [0.0001, 0.001, 0.01], 'log', legend_loc = 'lower left')
+plt.savefig("ocf_host.png")
+plt.plot(x, np.exp(- 2. * 1 * x)) 
+plt.show()
+exit()
+
+'''
+plt.figure()
+plot_data(time[runs:].T, msd[runs:].T, "GPU Side",
+    "Time", "msd", [0.0001, 0.001, 0.01], 'log', 'log', legend_loc = 'lower left')
+plt.savefig("msd_gpu.png")
+
+plt.figure()
+plot_data(time[:runs].T, msd[:runs].T, "Host Side",
+    "Time", "msd", [0.0001, 0.001, 0.01], 'log', 'log', legend_loc = 'lower left')
+plt.savefig("msd_host.png")
+'''
+
+
+plt.figure()
+plt.errorbar(time, msd, xerr = None, yerr = 2*d_msd, label="Simulated")
+plt.plot(time, lin_fit(time, *popt), label="Fit")
+plt.plot(time, lin_fit(time, 6.), label="Expected")
+plt.annotate("Fit Slope = {}".format(popt), (0.25, 0.5), textcoords="axes fraction")
+
+
+plt.show()
