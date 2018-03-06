@@ -29,7 +29,7 @@ def full_ordered_modes_2d(array):
         
 
 
-def quadrant_to_full(kx, ky, Z, axarray):
+def quadrant_to_full(kx, ky, Z, axarray, positions):
     '''
     x and y are one dimensional positive frequency arrays
     Z is the complex valued matrix that corresponds to the frequencies of the x
@@ -50,25 +50,28 @@ def quadrant_to_full(kx, ky, Z, axarray):
     ax = axarray[0]
     ax[0].set_aspect('equal')
     ax[0].contourf(kx, ky, np.abs( Z ))
-    ax[0].set_title('1st quadrant')
+    ax[0].set_title('Positive Frequencies')
 
     # this ifft doesn't make any sense, Z is not in the right format
-    cont = ax[1].contourf( np.fft.ifft2( Z ) )
+    #cont = ax[1].contourf( np.fft.ifft2( Z ) )
+    #cax = plt.axes([0.90, 0.55, 0.025, 0.35])
+    #plt.colorbar(cont, cax=cax)
+    ax[1].scatter( positions[:,0], positions[:,1] )
+    ax[1].set_title("Example Particle Distribution")
     ax[1].set_aspect('equal')
-    ax[1].set_title("WRONG, DISREGARD THIS - Real Space")
-    cax = plt.axes([0.90, 0.55, 0.025, 0.35])
-    plt.colorbar(cont, cax=cax)
+    ax[1].set_xlim([ - box_length / 2, box_length / 2])
+    ax[1].set_ylim([ - box_length / 2, box_length / 2])
 
     # full plot
     ax = axarray[1]
     ax[0].set_aspect('equal')
     ax[0].contourf(full_kx, full_ky, np.abs( full_Z ))
-    ax[0].set_title('Full frequencies quadrant')
+    ax[0].set_title('Positive and negative frequencies')
 
     cont = ax[1].contourf( full_x, full_y, np.fft.fftshift(np.fft.ifft2( np.fft.ifftshift( full_Z ) ))) 
     #cont = ax[1].contourf( np.fft.ifft2( np.fft.ifftshift( full_Z ) ))
     ax[1].set_aspect('equal')
-    ax[1].set_title("Real Space")
+    ax[1].set_title("IFT (obtained particle distribution)")
     cax = plt.axes([0.90, 0.1, 0.025, 0.35])
     plt.colorbar(cont, cax=cax)
 
@@ -105,7 +108,11 @@ def populate_modes_matrix(wavevector, mode_snapshot, sigma):
         #exit()
     return kx, ky, modes_matrix
 
+def gaussian_spacing_dx( sigma ):
+    return 2 * sigma * np.sqrt( 2 * np.log( 2 ) )
 
+def gaussian_spacing_sigma( dx ):
+    return dx / ( 2 * np.sqrt( 2 * np.log( 2 ) ) )
 
 def main(filename):
     box = get_box_dims(filename)
@@ -119,9 +126,11 @@ def main(filename):
     modes = np.copy(modes)
     modes_shifted = np.fft.fftshift(modes)
 
+    sigma = 0.1
+    cell_length = 0.2 
+
     # getting the data of one timestep to play around with
     snapshot = np.copy(modes[0,:])
-    sigma = 0.2
     k1_u, k2_u, modes_matrix = populate_modes_matrix(wavevector, snapshot, sigma)
 
     # PURELY FOR OUTPUT, NOT RELEVANT FOR THE CALCULATION
@@ -145,15 +154,14 @@ def main(filename):
 
     # testing with manually calculating the fourier modes on positions
     test_positions = np.array([ 
-                            [0, 1.5]
-                           ,[0, -1.5]
-                           ,[0, -0]
+                            [0, -0]
+                           ,[0, 1.5]
+                           #,[0, -1.5]
                            ,[-1., -1.]
-                           ,[1., 1.]
-                           ,[-1, -1] 
+                           #,[1., 1.7]
+                           #,[-1, -1] 
                            ], dtype=float)
     box = np.array( [4, 4] )
-    cell_length = 0.2 
 
     test_modes = np.zeros(wavevector.shape[0], dtype=complex)
     for ik, k in enumerate( wavevector ):
@@ -169,7 +177,7 @@ def main(filename):
     for i in range(kx.shape[0]):
         wavelength =  2 * np.pi / np.array([kx[i], ky[i]]) 
     #exit()
-    quadrant_to_full(kx, ky, test_modes_matrix, axarr) 
+    quadrant_to_full(kx, ky, test_modes_matrix, axarr, test_positions) 
     plt.show()
     exit()
 
