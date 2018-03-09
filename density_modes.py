@@ -29,8 +29,25 @@ def full_ordered_modes_2d(array):
         
 def new_wavevector_module(full_kx, full_ky, full_Z, axarray, positions, box_length):
 
+
     full_x = np.linspace(-box_length / 2, box_length / 2, full_Z.shape[0])
     full_y = np.linspace(-box_length / 2, box_length / 2, full_Z.shape[0])
+
+    print
+    print 'here'
+    print
+    k1max = max(abs(full_kx))
+    print k1max
+    print 2 * np.pi / box_length * 39
+    print k1max == 2 * np.pi / 0.1
+    print full_x.shape
+    print "supposed real space spacing from k1max"
+    print 2 * np.pi / k1max
+    print "real space spacing"
+    print full_x[1] - full_x[0]
+    
+    exit()
+    print 2 * np.pi / kx[1]
 
     # quadrant plot
     ax = axarray[0]
@@ -41,7 +58,8 @@ def new_wavevector_module(full_kx, full_ky, full_Z, axarray, positions, box_leng
     ax[0].set_xlim([ - box_length / 2, box_length / 2 ] )
     ax[0].set_ylim([ - box_length / 2, box_length / 2 ] )
 
-    cont = ax[1].contourf( full_x, full_y, np.fft.fftshift(np.fft.ifft2( np.fft.ifftshift( full_Z ) )))
+    cont = ax[1].contourf( full_x, full_y, np.fft.fftshift(np.fft.ifft2( np.fft.ifftshift( full_Z ) ))) 
+    #cont = ax[1].contourf( np.fft.ifft2( np.fft.ifftshift( full_Z ) ))
     ax[1].set_aspect('equal')
     ax[1].set_title("IFT (obtained particle distribution)")
     cax = plt.axes([0.90, 0.1, 0.025, 0.35])
@@ -55,7 +73,7 @@ def new_wavevector_module(full_kx, full_ky, full_Z, axarray, positions, box_leng
     ax[0].set_title('Positive and negative frequencies')
 
     ax[1].scatter( positions[:,0], positions[:,1], zorder = 10)
-    cont = ax[1].contourf( full_x, full_y, np.fft.fftshift(np.fft.ifft2( np.fft.ifftshift( full_Z ) )))
+    cont = ax[1].contourf( full_x, full_y, np.fft.fftshift(np.fft.ifft2( np.fft.ifftshift( full_Z ) ))) 
     #cont = ax[1].contourf( np.fft.ifft2( np.fft.ifftshift( full_Z ) ))
     ax[1].set_aspect('equal')
     ax[1].set_title("IFT and Actual Positions")
@@ -76,7 +94,7 @@ def quadrant_to_full(kx, ky, Z, axarray, positions, box_length):
     full_Z = full_ordered_modes_2d( Z )
 
     print 2 * np.pi / kx[1]
-    #box_length = 2 * np.pi / kx[1]
+    #box_length = 2 * np.pi / kx[1] 
     full_x = np.linspace(-box_length / 2, box_length / 2, full_Z.shape[0])
     full_y = np.linspace(-box_length / 2, box_length / 2, full_Z.shape[0])
 
