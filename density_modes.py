@@ -46,8 +46,6 @@ def new_wavevector_module(full_kx, full_ky, full_Z, axarray, positions, box_leng
     print "real space spacing"
     print full_x[1] - full_x[0]
     
-    exit()
-    print 2 * np.pi / kx[1]
 
     # quadrant plot
     ax = axarray[0]
@@ -145,6 +143,14 @@ def populate_modes_matrix(wavevector, mode_snapshot, sigma):
         # go are found
         k1_ind = np.where(kx <= wavevector[i,0])[0][-1]
         k2_ind = np.where(ky <= wavevector[i,1])[0][-1]
+        print wavevector[0]
+        print np.where(kx <= wavevector[i,0])[0][-1]
+        print np.where(ky <= wavevector[i,1])[0][-1]
+        print kx[k1_ind]
+        print ky[k2_ind]
+        print kx[k1_ind] == wavevector[0,0]
+        print ky[k2_ind] == wavevector[0,1]
+        #exit()
         k_vec = np.array( [ kx[ k1_ind ], ky[ k2_ind ] ] )
         if modes_matrix[k2_ind, k1_ind] == 0:
             r_0 = np.array( [1.0, 0.0], dtype = float )
@@ -167,6 +173,17 @@ def gaussian_spacing_dx( sigma ):
 def gaussian_spacing_sigma( dx ):
     return dx / ( 2 * np.sqrt( 2 * np.log( 2 ) ) )
 
+def print_modes_sorted_by_wavevector(wavevector, modes):
+    # PURELY FOR OUTPUT, NOT RELEVANT FOR THE CALCULATION
+    # sorting the data first by k1, then by k2
+    ind = np.lexsort((wavevector[:,1], wavevector[:,0]))
+    array = wavevector[ind]
+    modes_ordered = modes[ind]
+    # outputting the ordered k vectors and their corresponding absolute values
+    # amplitudes
+    for i, val in enumerate(array):
+        print val, np.abs(modes_ordered[i])
+
 def main(filename):
     box = get_box_dims(filename)
     p_step, p_time, position     =  get_position_data(filename)
@@ -177,26 +194,15 @@ def main(filename):
     dm_step, dm_time, modes, wavevector = get_density_mode_data(filename)
 
     modes = np.copy(modes)
-    modes_shifted = np.fft.fftshift(modes)
+    # getting the data of one timestep to play around with
+    modes_snapshot = np.copy(modes[0,:])
 
     sigma = 0.05
 
-    # getting the data of one timestep to play around with
-    snapshot = np.copy(modes[0,:])
+    #print_modes_sorted_by_wavevector(wavevector, modes_snapshot)
 
-    # PURELY FOR OUTPUT, NOT RELEVANT FOR THE CALCULATION
-    # sorting the data first by k1, then by k2
-    ind = np.lexsort((wavevector[:,1], wavevector[:,0]))
-    array = wavevector[ind]
-    snapshot_ordered = snapshot[ind]
-    # outputting the ordered k vectors and their corresponding absolute values
-    # amplitudes
-    for i, val in enumerate(array):
-        print val, np.abs(snapshot_ordered[i])
-
-
-    k1_u, k2_u, modes_matrix = populate_modes_matrix(wavevector, snapshot, sigma)
-    print k1_u
+    k1_u, k2_u, modes_matrix = populate_modes_matrix(wavevector, modes_snapshot, sigma)
+    #exit()
 
     f, axarr = plt.subplots(2, 2)
     new_wavevector_module(k1_u, k2_u, modes_matrix, axarr, position[0], box[0]) 
