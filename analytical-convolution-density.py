@@ -94,6 +94,7 @@ def main(filename):
     dm_step, dm_time, modes, wavevector = get_density_mode_data(filename)
 
     sigma = 0.1
+    sigma = np.pi / ( max(wavevector[:,0]) * np.sqrt( 2 * np.log(2) ) )
     cell_length = 0.2 
 
     #ANALYTICAL OPTION

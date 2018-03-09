@@ -152,12 +152,20 @@ def populate_modes_matrix(wavevector, mode_snapshot, sigma):
         print ky[k2_ind] == wavevector[0,1]
         #exit()
         k_vec = np.array( [ kx[ k1_ind ], ky[ k2_ind ] ] )
+        #r_0 = np.array( [1.0, 0.0], dtype = float )
         if modes_matrix[k2_ind, k1_ind] == 0:
-            r_0 = np.array( [1.0, 0.0], dtype = float )
-            gaussian = np.exp( -1j * ( np.dot(k_vec, r_0) ) - 0.5 * sigma ** 2 * ( kx[k1_ind]**2 + ky[k2_ind]**2 ) )
+
+            # fully fourier transformed gaussian with r_0
+            #gaussian = np.exp( -1j * ( np.dot(k_vec, r_0) ) - 0.5 * sigma ** 2 * ( kx[k1_ind]**2 + ky[k2_ind]**2 ) )
+
+            # only real part of exponent ( without r_0 )
+            gaussian = np.exp( - 0.5 * sigma ** 2 * ( kx[k1_ind]**2 + ky[k2_ind]**2 ) )
+
+            # with prefactors and only real part of exponent
             #gaussian = sigma * np.sqrt( 2 * np.pi) * np.exp( - 0.5 * sigma ** 2 * ( kx[k1_ind]**2 + ky[k2_ind]**2 ) )
-            modes_matrix[k2_ind, k1_ind] = gaussian * mode_snapshot[i]
-            #modes_matrix[k2_ind, k1_ind] = mode_snapshot[i]
+
+            #modes_matrix[k2_ind, k1_ind] = gaussian * mode_snapshot[i]
+            modes_matrix[k2_ind, k1_ind] = mode_snapshot[i]
         else:
             print 'Warning: Uneccesary mode recalculation.'
             if modes_matrix[k2_ind, k1_ind] != mode_snapshot[i]:
@@ -204,12 +212,18 @@ def main(filename):
     k1_u, k2_u, modes_matrix = populate_modes_matrix(wavevector, modes_snapshot, sigma)
     #exit()
 
+    sigma = np.pi / ( max(wavevector[:,0]) * np.sqrt( 2 * np.log(2) ) )
+    print sigma
+
+    k1_u, k2_u, modes_matrix = populate_modes_matrix(wavevector, snapshot, sigma)
+    print gaussian_spacing_dx(sigma)
+
+
     f, axarr = plt.subplots(2, 2)
     new_wavevector_module(k1_u, k2_u, modes_matrix, axarr, position[0], box[0]) 
-    plt.show()
+    #plt.show()
+    plt.savefig('123.eps')
 
-    nsteps = position.shape[0]
-    nparticles = position.shape[1]
 
 
 
