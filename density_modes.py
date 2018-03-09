@@ -27,9 +27,43 @@ def full_ordered_modes_2d(array):
     array = np.concatenate( ( np.conj( array[:0:-1] ), array[:-1]), axis = 0)
     return array
         
+def new_wavevector_module(full_kx, full_ky, full_Z, axarray, positions, box_length):
+
+    full_x = np.linspace(-box_length / 2, box_length / 2, full_Z.shape[0])
+    full_y = np.linspace(-box_length / 2, box_length / 2, full_Z.shape[0])
+
+    # quadrant plot
+    ax = axarray[0]
+
+    ax[0].scatter( positions[:,0], positions[:,1] )
+    ax[0].set_title("Actual Particle Distribution")
+    ax[0].set_aspect('equal')
+    ax[0].set_xlim([ - box_length / 2, box_length / 2 ] )
+    ax[0].set_ylim([ - box_length / 2, box_length / 2 ] )
+
+    cont = ax[1].contourf( full_x, full_y, np.fft.fftshift(np.fft.ifft2( np.fft.ifftshift( full_Z ) )))
+    ax[1].set_aspect('equal')
+    ax[1].set_title("IFT (obtained particle distribution)")
+    cax = plt.axes([0.90, 0.1, 0.025, 0.35])
+    plt.colorbar(cont, cax=cax)
 
 
-def quadrant_to_full(kx, ky, Z, axarray, positions):
+    ax = axarray[1]
+
+    ax[0].set_aspect('equal')
+    ax[0].contourf(full_kx, full_ky, np.abs( full_Z ))
+    ax[0].set_title('Positive and negative frequencies')
+
+    ax[1].scatter( positions[:,0], positions[:,1], zorder = 10)
+    cont = ax[1].contourf( full_x, full_y, np.fft.fftshift(np.fft.ifft2( np.fft.ifftshift( full_Z ) )))
+    #cont = ax[1].contourf( np.fft.ifft2( np.fft.ifftshift( full_Z ) ))
+    ax[1].set_aspect('equal')
+    ax[1].set_title("IFT and Actual Positions")
+    cax = plt.axes([0.90, 0.1, 0.025, 0.35])
+    plt.colorbar(cont, cax=cax)
+
+
+def quadrant_to_full(kx, ky, Z, axarray, positions, box_length):
     '''
     x and y are one dimensional positive frequency arrays
     Z is the complex valued matrix that corresponds to the frequencies of the x
@@ -42,7 +76,7 @@ def quadrant_to_full(kx, ky, Z, axarray, positions):
     full_Z = full_ordered_modes_2d( Z )
 
     print 2 * np.pi / kx[1]
-    box_length = 2 * np.pi / kx[1] 
+    #box_length = 2 * np.pi / kx[1]
     full_x = np.linspace(-box_length / 2, box_length / 2, full_Z.shape[0])
     full_y = np.linspace(-box_length / 2, box_length / 2, full_Z.shape[0])
 
@@ -56,6 +90,7 @@ def quadrant_to_full(kx, ky, Z, axarray, positions):
     #cont = ax[1].contourf( np.fft.ifft2( Z ) )
     #cax = plt.axes([0.90, 0.55, 0.025, 0.35])
     #plt.colorbar(cont, cax=cax)
+    print box_length
     ax[1].scatter( positions[:,0], positions[:,1] )
     ax[1].set_title("Example Particle Distribution")
     ax[1].set_aspect('equal')
@@ -93,12 +128,12 @@ def populate_modes_matrix(wavevector, mode_snapshot, sigma):
         k1_ind = np.where(kx <= wavevector[i,0])[0][-1]
         k2_ind = np.where(ky <= wavevector[i,1])[0][-1]
         k_vec = np.array( [ kx[ k1_ind ], ky[ k2_ind ] ] )
-        r_0 = np.array( [1.0, 0.0], dtype = float )
         if modes_matrix[k2_ind, k1_ind] == 0:
-            gaussian = np.exp( -1j * np.pi * ( np.dot(k_vec, r_0) ) - 0.5 * np.pi
-                ** 2 * sigma**2 * ( kx[k1_ind]**2 + ky[k2_ind]**2 ) )
-            #modes_matrix[k2_ind, k1_ind] = gaussian * mode_snapshot[i]
-            modes_matrix[k2_ind, k1_ind] = mode_snapshot[i]
+            r_0 = np.array( [1.0, 0.0], dtype = float )
+            gaussian = np.exp( -1j * ( np.dot(k_vec, r_0) ) - 0.5 * sigma ** 2 * ( kx[k1_ind]**2 + ky[k2_ind]**2 ) )
+            #gaussian = sigma * np.sqrt( 2 * np.pi) * np.exp( - 0.5 * sigma ** 2 * ( kx[k1_ind]**2 + ky[k2_ind]**2 ) )
+            modes_matrix[k2_ind, k1_ind] = gaussian * mode_snapshot[i]
+            #modes_matrix[k2_ind, k1_ind] = mode_snapshot[i]
         else:
             print 'Warning: Uneccesary mode recalculation.'
             if modes_matrix[k2_ind, k1_ind] != mode_snapshot[i]:
@@ -126,141 +161,31 @@ def main(filename):
     modes = np.copy(modes)
     modes_shifted = np.fft.fftshift(modes)
 
-    sigma = 0.1
-    cell_length = 0.2 
+    sigma = 0.05
 
     # getting the data of one timestep to play around with
     snapshot = np.copy(modes[0,:])
-    k1_u, k2_u, modes_matrix = populate_modes_matrix(wavevector, snapshot, sigma)
 
     # PURELY FOR OUTPUT, NOT RELEVANT FOR THE CALCULATION
     # sorting the data first by k1, then by k2
     ind = np.lexsort((wavevector[:,1], wavevector[:,0]))
     array = wavevector[ind]
     snapshot_ordered = snapshot[ind]
-    # outputting the ordered k vectors and their corresponding (complex)
+    # outputting the ordered k vectors and their corresponding absolute values
     # amplitudes
     for i, val in enumerate(array):
         print val, np.abs(snapshot_ordered[i])
 
-    # the associated positions for the wavevectors
-    # how to calculate these?
-    
 
-
-
-
-
-
-    # testing with manually calculating the fourier modes on positions
-    test_positions = np.array([ 
-                            [0, -0]
-                           ,[0, 1.5]
-                           #,[0, -1.5]
-                           ,[-1., -1.]
-                           #,[1., 1.7]
-                           #,[-1, -1] 
-                           ], dtype=float)
-    box = np.array( [4, 4] )
-
-    test_modes = np.zeros(wavevector.shape[0], dtype=complex)
-    for ik, k in enumerate( wavevector ):
-        for ir, r in enumerate( test_positions ):
-            test_modes[ik] += np.exp(1j * np.dot(k, r))
-
+    k1_u, k2_u, modes_matrix = populate_modes_matrix(wavevector, snapshot, sigma)
+    print k1_u
 
     f, axarr = plt.subplots(2, 2)
-    kx, ky, test_modes_matrix = populate_modes_matrix(wavevector, test_modes, sigma)
-
-
-
-    for i in range(kx.shape[0]):
-        wavelength =  2 * np.pi / np.array([kx[i], ky[i]]) 
-    #exit()
-    quadrant_to_full(kx, ky, test_modes_matrix, axarr, test_positions) 
+    new_wavevector_module(k1_u, k2_u, modes_matrix, axarr, position[0], box[0]) 
     plt.show()
-    exit()
-
-    
-
-
-
-
-
-
-
-
-
-
-    f, axarr = plt.subplots(2, 2)
-    quadrant_to_full(k1_u, k2_u, modes_matrix, axarr) 
-    exit()
-
-    # testing with an image of a grid
-    image = io.imread('/home/mi/jatwell/playground/images/horizontal-vertical-lines.png')[11:-16, 13:-17]
-    M, N = image.shape
-    F2_shifted = fftpack.fft2(image)
-    F2_ordered = fftpack.ifftshift(F2_shifted)
-    print F2_shifted.shape
-    print M, N
-    #axarr[0,0].imshow(image, cmap ='gray')
-    #axarr[0,1].imshow( np.log( 1 + np.abs( F2_ordered ) ), cmap ='viridis' )
-    #axarr[0,1].contourf( np.log( 1 + np.abs( F2_ordered ) ), cmap ='viridis' )
-    #axarr[1,0].contourf( np.fft.ifft2( F2_shifted ) , cmap ='viridis' )
-    plt.show()
-
-
-    # only the positive frequency modes are picked out
-    plus =  F2_shifted[:M // 2 + 1, : N // 2 + 1]
-
-    print F2_ordered[0] == full_ordered_modes_2d(plus)[0]
-    print max(np.stack( ( full_ordered_modes_2d(plus)[0], F2_ordered[0], np.abs(full_ordered_modes_2d(plus)[0] - F2_ordered[0]) ) ).T[:,2])
-        
-
-
-    kx_full = np.fft.fftfreq(N)
-    ky_full = np.fft.fftfreq(M)
-    kx = kx_full[: N // 2 + 1]
-    kx[-1] *= -1
-    ky = ky_full[: M // 2 + 1]
-    ky[-1] *= -1
-
-    f, axarr = plt.subplots(2, 2)
-    quadrant_to_full(kx, ky, plus, axarr) 
-    #plt.show()
-
-
-
-
-    exit()
-    
-
-
-
-
-    # modes is rho_k!
-    for snapshot in modes:
-        print snapshot.shape
-        print wavevector.shape
-        print snapshot
-        back_transformed = np.fft.ifft2(snapshot)
-        exit()
-        exit()
-        plt.contourf(wavevector[:,0], wavevector[:,1], snapshot)
-        plt.show()
-    
-
-        exit()
-
 
     nsteps = position.shape[0]
     nparticles = position.shape[1]
-
-    ncells = int(math.floor( box[0] / cell_length ))
-
-
-
-
 
 
 
