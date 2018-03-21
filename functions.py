@@ -296,10 +296,10 @@ def full_ordered_modes_2d(array):
     array = np.concatenate( ( np.conj( array[:0:-1] ), array[:-1]), axis = 0)
     return array
 
-def normalize_density_mode_matrix(density, nparts):
-    density[density < 0] = 0
-    summ = np.sum(density)
-    density = density / summ * nparts
+def normalize_density_mode_matrix(density, nparticles):
+    #density[density < -np.min(density)] = 0
+    #summ = np.sum(density)
+    #density = density / summ * nparticles
     return density
 
 def normalize_other_mode_matrix(mat, density):
