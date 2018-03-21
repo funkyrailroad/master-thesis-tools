@@ -30,11 +30,8 @@ def main(filename):
     v_0 = get_v_0(filename)[-1]
     dm_step, dm_time, d_modes, wavevector = get_density_mode_data(filename)
     #vm_step, vm_time, v_modes, v_wavevector = get_velocity_mode_data(filename)
-    print np.sum(orientation[1]**2, axis = 1)
-    exit()
-
-
     nsteps = orientation.shape[0]
+    nparticles = orientation.shape[1]
     sigma = 0.1
     max_steps = 5
 
@@ -55,16 +52,6 @@ def main(filename):
         #k1_u, k2_u, v_modes_matrix_z = populate_modes_matrix(wavevector,
                 #modes_snapshot[:,2], sigma)
 
-        # what is going on with this hack? 
-        # double check it when switching to halmd velocity mode module
-        v_modes_matrix_x = np.flip(v_modes_matrix_x, axis = 0)
-        v_modes_matrix_x = np.flip(v_modes_matrix_x, axis = 1)
-        v_modes_matrix_y = np.flip(v_modes_matrix_y, axis = 0)
-        v_modes_matrix_y = np.flip(v_modes_matrix_y, axis = 1)
-        #v_modes_matrix_z = np.flip(v_modes_matrix_z, axis = 0)
-        #v_modes_matrix_z = np.flip(v_modes_matrix_z, axis = 1)
-
-
         ft_d_modes = np.real( np.fft.fftshift(np.fft.ifft2( np.fft.ifftshift(
             d_modes_matrix ) )) )
         ft_v_modes_x = np.real( np.fft.fftshift(np.fft.ifft2( np.fft.ifftshift(
@@ -74,9 +61,9 @@ def main(filename):
         #ft_v_modes_z = np.real( np.fft.fftshift(np.fft.ifft2( np.fft.ifftshift(
             #v_modes_matrix_z ) )) )
 
-        ft_d_modes = normalize_density_mode_matrix( ft_d_modes )
-        ft_v_modes_x = normalize_other_mode_matrix( ft_v_modes_x, ft_d_modes)
-        ft_v_modes_y = normalize_other_mode_matrix( ft_v_modes_y, ft_d_modes)
+        #ft_d_modes = normalize_density_mode_matrix( ft_d_modes, nparticles)
+        #ft_v_modes_x = normalize_other_mode_matrix( ft_v_modes_x, ft_d_modes)
+        #ft_v_modes_y = normalize_other_mode_matrix( ft_v_modes_y, ft_d_modes)
         #ft_v_modes_z = normalize_other_mode_matrix( ft_v_modes_z, ft_d_modes)
 
         f, axarr = plt.subplots(2, 2)
