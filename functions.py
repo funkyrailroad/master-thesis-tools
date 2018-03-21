@@ -310,6 +310,8 @@ def normalize_other_mode_matrix(mat, density):
 def new_wavevector_module(full_kx, full_ky, full_Z, ft_Z, axarray, positions,
         box_length):
 
+
+    N = 80  # contour plot fine resolution
     full_x = np.linspace(-box_length / 2, box_length / 2, full_Z.shape[0])
     full_y = np.linspace(-box_length / 2, box_length / 2, full_Z.shape[0])
 
@@ -323,7 +325,7 @@ def new_wavevector_module(full_kx, full_ky, full_Z, ft_Z, axarray, positions,
     ax[0].set_ylim([ - box_length / 2, box_length / 2 ] )
 
     # IFT
-    cont = ax[1].contourf( full_x, full_y, ft_Z )
+    cont = ax[1].contourf( full_x, full_y, ft_Z, N)
     ax[1].set_aspect('equal')
     ax[1].set_title("IFT (obtained particle distribution)")
     cax = plt.axes([0.90, 0.1, 0.025, 0.35])
@@ -339,7 +341,7 @@ def new_wavevector_module(full_kx, full_ky, full_Z, ft_Z, axarray, positions,
 
     # particles and IFT
     ax[1].scatter( positions[:,0], positions[:,1], zorder = 10)
-    cont = ax[1].contourf( full_x, full_y, ft_Z )
+    cont = ax[1].contourf( full_x, full_y, ft_Z , N)
     ax[1].set_aspect('equal')
     ax[1].set_title("IFT and Actual Positions")
     cax = plt.axes([0.90, 0.1, 0.025, 0.35])
