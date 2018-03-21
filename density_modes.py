@@ -29,6 +29,7 @@ def main(filename):
     dims = get_dimension(filename)
     dm_step, dm_time, modes, wavevector = get_density_mode_data(filename)
     nsteps = orientation.shape[0]
+    nparts = orientation.shape[1]
     sigma = 0.1
     max_steps = 5
 
@@ -38,9 +39,9 @@ def main(filename):
                 modes_snapshot, sigma)
         # taking the real part because it started as a real image, although the
         # imaginary part is very small to begin with
-        ft_modes = np.real( np.fft.fftshift(np.fft.ifft2( np.fft.ifftshift(
+        ft_modes = ( np.fft.fftshift(np.fft.ifft2( np.fft.ifftshift(
             modes_matrix ) )) )
-        #ft_modes = normalize_density_mode_matrix(ft_modes)
+        ft_modes = normalize_density_mode_matrix(ft_modes, nparts)
 
         f, axarr = plt.subplots(2, 2)
         new_wavevector_module( k1_u, k2_u, modes_matrix, ft_modes, axarr,

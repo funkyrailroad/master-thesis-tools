@@ -296,10 +296,10 @@ def full_ordered_modes_2d(array):
     array = np.concatenate( ( np.conj( array[:0:-1] ), array[:-1]), axis = 0)
     return array
 
-def normalize_density_mode_matrix(density):
+def normalize_density_mode_matrix(density, nparts):
     density[density < 0] = 0
     summ = np.sum(density)
-    density = density / summ
+    density = density / summ * nparts
     return density
 
 def normalize_other_mode_matrix(mat, density):
@@ -313,15 +313,16 @@ def new_wavevector_module(full_kx, full_ky, full_Z, ft_Z, axarray, positions,
     full_x = np.linspace(-box_length / 2, box_length / 2, full_Z.shape[0])
     full_y = np.linspace(-box_length / 2, box_length / 2, full_Z.shape[0])
 
-    # quadrant plot
     ax = axarray[0]
 
+    # particle distrubtion
     ax[0].scatter( positions[:,0], positions[:,1] )
     ax[0].set_title("Actual Particle Distribution")
     ax[0].set_aspect('equal')
     ax[0].set_xlim([ - box_length / 2, box_length / 2 ] )
     ax[0].set_ylim([ - box_length / 2, box_length / 2 ] )
 
+    # IFT
     cont = ax[1].contourf( full_x, full_y, ft_Z )
     ax[1].set_aspect('equal')
     ax[1].set_title("IFT (obtained particle distribution)")
@@ -331,10 +332,12 @@ def new_wavevector_module(full_kx, full_ky, full_Z, ft_Z, axarray, positions,
 
     ax = axarray[1]
 
+    # density modes
     ax[0].set_aspect('equal')
     ax[0].contourf(full_kx, full_ky, np.abs( full_Z ))
     ax[0].set_title('Positive and negative frequencies')
 
+    # particles and IFT
     ax[1].scatter( positions[:,0], positions[:,1], zorder = 10)
     cont = ax[1].contourf( full_x, full_y, ft_Z )
     ax[1].set_aspect('equal')
