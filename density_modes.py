@@ -17,156 +17,10 @@ from scipy import fftpack
 import sys
 from numpy import linalg as LA
 
-def full_ordered_frequencies_1d(array):
-    return np.concatenate( ( -array[:0:-1], array[:-1]) )
-
-def full_ordered_modes_2d(array):
-    # this takes an array of positive frequencies and mirrors it about both
-    # (2d) axes to have something that fftshift can work with
-    array = np.concatenate( ( np.conj( array[:,:0:-1] ), array[:,:-1]), axis = 1)
-    array = np.concatenate( ( np.conj( array[:0:-1] ), array[:-1]), axis = 0)
-    return array
         
-def new_wavevector_module(full_kx, full_ky, full_Z, axarray, positions, box_length):
-
-
-    full_x = np.linspace(-box_length / 2, box_length / 2, full_Z.shape[0])
-    full_y = np.linspace(-box_length / 2, box_length / 2, full_Z.shape[0])
-
-    # quadrant plot
-    ax = axarray[0]
-
-    ax[0].scatter( positions[:,0], positions[:,1] )
-    ax[0].set_title("Actual Particle Distribution")
-    ax[0].set_aspect('equal')
-    ax[0].set_xlim([ - box_length / 2, box_length / 2 ] )
-    ax[0].set_ylim([ - box_length / 2, box_length / 2 ] )
-
-    cont = ax[1].contourf( full_x, full_y, np.fft.fftshift(np.fft.ifft2( np.fft.ifftshift( full_Z ) ))) 
-    #cont = ax[1].contourf( np.fft.ifft2( np.fft.ifftshift( full_Z ) ))
-    ax[1].set_aspect('equal')
-    ax[1].set_title("IFT (obtained particle distribution)")
-    cax = plt.axes([0.90, 0.1, 0.025, 0.35])
-    plt.colorbar(cont, cax=cax)
-
-
-    ax = axarray[1]
-
-    ax[0].set_aspect('equal')
-    ax[0].contourf(full_kx, full_ky, np.abs( full_Z ))
-    ax[0].set_title('Positive and negative frequencies')
-
-    ax[1].scatter( positions[:,0], positions[:,1], zorder = 10)
-    cont = ax[1].contourf( full_x, full_y, np.fft.fftshift(np.fft.ifft2( np.fft.ifftshift( full_Z ) ))) 
-    #cont = ax[1].contourf( np.fft.ifft2( np.fft.ifftshift( full_Z ) ))
-    ax[1].set_aspect('equal')
-    ax[1].set_title("IFT and Actual Positions")
-    cax = plt.axes([0.90, 0.1, 0.025, 0.35])
-    plt.colorbar(cont, cax=cax)
-
-
-def quadrant_to_full(kx, ky, Z, axarray, positions, box_length):
-    '''
-    x and y are one dimensional positive frequency arrays
-    Z is the complex valued matrix that corresponds to the frequencies of the x
-    and y vectors
-    '''
-
-
-    full_kx = full_ordered_frequencies_1d( kx )
-    full_ky = full_ordered_frequencies_1d( ky )
-    full_Z = full_ordered_modes_2d( Z )
-
-    full_x = np.linspace(-box_length / 2, box_length / 2, full_Z.shape[0])
-    full_y = np.linspace(-box_length / 2, box_length / 2, full_Z.shape[0])
-
-    # quadrant plot
-    ax = axarray[0]
-    ax[0].set_aspect('equal')
-    ax[0].contourf(kx, ky, np.abs( Z ))
-    ax[0].set_title('Positive Frequencies')
-
-    ax[1].scatter( positions[:,0], positions[:,1] )
-    ax[1].set_title("Example Particle Distribution")
-    ax[1].set_aspect('equal')
-    ax[1].set_xlim([ - box_length / 2, box_length / 2])
-    ax[1].set_ylim([ - box_length / 2, box_length / 2])
-
-    # full plot
-    ax = axarray[1]
-    ax[0].set_aspect('equal')
-    ax[0].contourf(full_kx, full_ky, np.abs( full_Z ))
-    ax[0].set_title('Positive and negative frequencies')
-
-    cont = ax[1].contourf( full_x, full_y, np.fft.fftshift(np.fft.ifft2( np.fft.ifftshift( full_Z ) ))) 
-    #cont = ax[1].contourf( np.fft.ifft2( np.fft.ifftshift( full_Z ) ))
-    ax[1].set_aspect('equal')
-    ax[1].set_title("IFT (obtained particle distribution)")
-    cax = plt.axes([0.90, 0.1, 0.025, 0.35])
-    plt.colorbar(cont, cax=cax)
-
-
-def populate_modes_matrix(wavevector, mode_snapshot, sigma):
-
-    # make ordered lists of the values of k that were used
-    # make it some sort of array so it's more easily generalized into 3d
-    # k$ind are the indicies of wavevector that contain the unique
-    # values of wavevector
-    kx = np.unique( wavevector[:,0] )
-    ky = np.unique( wavevector[:,1] )
-
-    # make an n-dimensional matrix for holding the mode data
-    modes_matrix = np.zeros((len(ky), len(kx)), dtype=complex)
-
-    for i in range(mode_snapshot.shape[0]):
-        # the indicies of the area in which the components of wavevector should
-        # go are found
-        k1_ind = np.where(kx <= wavevector[i,0])[0][-1]
-        k2_ind = np.where(ky <= wavevector[i,1])[0][-1]
-        k_vec = np.array( [ kx[ k1_ind ], ky[ k2_ind ] ] )
-        #r_0 = np.array( [1.0, 0.0], dtype = float )
-        if modes_matrix[k2_ind, k1_ind] == 0:
-
-            # no gaussian
-            gaussian = 1.
-
-            # fully fourier transformed gaussian with r_0
-            # how to define r_0!?
-            #gaussian = np.exp( -1j * ( np.dot(k_vec, r_0) ) - 0.5 * sigma ** 2 * ( kx[k1_ind]**2 + ky[k2_ind]**2 ) )
-
-            # only real part of exponent ( without r_0 )
-            #gaussian = np.exp( - 0.5 * sigma ** 2 * ( kx[k1_ind]**2 + ky[k2_ind]**2 ) )
-
-            # with prefactors and only real part of exponent
-            #gaussian = sigma * np.sqrt( 2 * np.pi) * np.exp( - 0.5 * sigma ** 2 * ( kx[k1_ind]**2 + ky[k2_ind]**2 ) )
-
-            modes_matrix[k2_ind, k1_ind] = gaussian * mode_snapshot[i]
-        else:
-            print 'Warning: Uneccesary mode recalculation.'
-            if modes_matrix[k2_ind, k1_ind] != mode_snapshot[i]:
-                print "Error: Mode caclulated doubly and differently for a\
-                        wavevector."
-                #exit()
-        #exit()
-    return kx, ky, modes_matrix
-
-def gaussian_spacing_dx( sigma ):
-    return 2 * sigma * np.sqrt( 2 * np.log( 2 ) )
-
-def gaussian_spacing_sigma( dx ):
-    return dx / ( 2 * np.sqrt( 2 * np.log( 2 ) ) )
-
-def print_modes_sorted_by_wavevector(wavevector, modes):
-    # sorting the data first by k1, then by k2
-    ind = np.lexsort((wavevector[:,1], wavevector[:,0]))
-    array = wavevector[ind]
-    modes_ordered = modes[ind]
-    # outputting the ordered k vectors and their corresponding absolute values
-    # amplitudes
-    for i, val in enumerate(array):
-        print val, np.abs(modes_ordered[i])
 
 def main(filename):
+
     box = get_box_dims(filename)
     p_step, p_time, position     =  get_position_data(filename)
     o_step, o_time, orientation  =  get_orientation_data(filename)
@@ -176,23 +30,28 @@ def main(filename):
     dm_step, dm_time, modes, wavevector = get_density_mode_data(filename)
     nsteps = orientation.shape[0]
     sigma = 0.1
-    max_steps = 50
-
-
+    max_steps = 5
 
     i = 0
-    for position_snapshot, modes_snapshot in zip(position, modes):
+    for position_snapshot, modes_snapshot in zip(bounded_position, modes):
+        k1_u, k2_u, modes_matrix = populate_modes_matrix(wavevector,
+                modes_snapshot, sigma)
+        # taking the real part because it started as a real image, although the
+        # imaginary part is very small to begin with
+        ft_modes = np.real( np.fft.fftshift(np.fft.ifft2( np.fft.ifftshift(
+            modes_matrix ) )) )
+        #ft_modes = normalize_density_mode_matrix(ft_modes)
 
-        k1_u, k2_u, modes_matrix = populate_modes_matrix(wavevector, modes_snapshot, sigma)
         f, axarr = plt.subplots(2, 2)
-        new_wavevector_module(k1_u, k2_u, modes_matrix, axarr, position_snapshot, box[0]) 
-        plt.savefig("antialignment/movie-test/%06d.png" %  i)
+        new_wavevector_module( k1_u, k2_u, modes_matrix, ft_modes, axarr,
+                position_snapshot, box[0] ) 
+        plt.savefig("antialignment/movie-test/density-modes-%06d.png" %  i)
         plt.close()
+        exit()
         i += 1
         if i % 5 == 0:
             print "Completion: {:.2f}%".format(float(i) /  nsteps * 100)
         if i == max_steps:
-            plt.show()
             exit()
 
 
