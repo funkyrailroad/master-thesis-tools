@@ -400,7 +400,7 @@ def populate_modes_matrix(wavevector, mode_snapshot, sigma):
     ky = np.unique( wavevector[:,1] )
 
     # make an n-dimensional matrix for holding the mode data
-    modes_matrix = np.zeros((len(ky), len(kx)), dtype=complex)
+    modes_matrix = np.zeros((len(ky), len(kx)), dtype=np.complex128)
 
     for i in range(mode_snapshot.shape[0]):
         # the indicies of the area in which the components of wavevector should
@@ -454,15 +454,28 @@ def print_modes_sorted_by_wavevector(wavevector, modes):
     for i, val in enumerate(array):
         print val, np.abs(modes_ordered[i])
 
+def calculate_density_mode_snapshot(wavevector, test_positions):
+    test_modes = np.zeros(wavevector.shape[0], dtype=np.complex128)
+    for ik, k in enumerate( wavevector ):
+        for ir, r in enumerate( test_positions ):
+            #TODO: figure out if the exponent should be negative or positive
+            #      negative lines up with the positions correctly
+            test_modes[ik] += np.exp(-1j * np.dot(k, r))
+    return test_modes
+
+
+
 
 def calculate_velocity_mode_snapshot(position_snapshot, orientation_snapshot, v_0, wavevector):
-    v_modes_snapshot = np.zeros_like(wavevector, dtype=complex)
+    v_modes_snapshot = np.zeros_like(wavevector, dtype=np.complex128)
     dimension = wavevector.shape[1]
 
     for ik, k in enumerate( wavevector ):
-        dummy = np.zeros(dimension, dtype=complex)
+        dummy = np.zeros(dimension, dtype=np.complex128)
         for ir, r in enumerate( position_snapshot ):
-            dummy += v_0 * orientation_snapshot[ir] * np.exp( 1j * np.dot( k,
+            #TODO: figure out if the exponent should be negative or positive
+            #      negative lines up with the positions correctly
+            dummy += v_0 * orientation_snapshot[ir] * np.exp( -1j * np.dot( k,
                 position_snapshot[ir] ) )
         v_modes_snapshot[ik] = dummy
 
@@ -473,10 +486,10 @@ def get_velocity_modes(positions, orientations, v_0, wavevector, cutoff_time=Non
     # time steps have to be calculated
     if cutoff_time:
         v_modes = np.zeros( (cutoff_time, wavevector.shape[0],
-            wavevector.shape[1] ), dtype=complex)
+            wavevector.shape[1] ), dtype=np.complex128)
     else:
         v_modes = np.zeros( (positions.shape[0], wavevector.shape[0],
-            wavevector.shape[1] ), dtype=complex)
+            wavevector.shape[1] ), dtype=np.complex128)
 
     for iv, v  in enumerate( v_modes ):
         v_modes[iv] = calculate_velocity_mode_snapshot( positions[iv],
