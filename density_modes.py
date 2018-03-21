@@ -29,31 +29,36 @@ def main(filename):
     dims = get_dimension(filename)
     dm_step, dm_time, modes, wavevector = get_density_mode_data(filename)
     nsteps = orientation.shape[0]
-    nparts = orientation.shape[1]
+    nparticles = orientation.shape[1]
     sigma = 0.1
-    max_steps = 5
+    max_steps = 1
 
     i = 0
     for position_snapshot, modes_snapshot in zip(bounded_position, modes):
+        snap2 = calculate_density_mode_snapshot(wavevector, position_snapshot)
+
+        modes_snapshot = snap2
         k1_u, k2_u, modes_matrix = populate_modes_matrix(wavevector,
                 modes_snapshot, sigma)
+
         # taking the real part because it started as a real image, although the
         # imaginary part is very small to begin with
-        ft_modes = ( np.fft.fftshift(np.fft.ifft2( np.fft.ifftshift(
+        ft_modes = np.real( np.fft.fftshift(np.fft.ifft2( np.fft.ifftshift(
             modes_matrix ) )) )
-        ft_modes = normalize_density_mode_matrix(ft_modes, nparts)
+
+        #ft_modes = normalize_density_mode_matrix(ft_modes, nparticles)
 
         f, axarr = plt.subplots(2, 2)
         new_wavevector_module( k1_u, k2_u, modes_matrix, ft_modes, axarr,
                 position_snapshot, box[0] ) 
         plt.savefig("antialignment/movie-test/density-modes-%06d.png" %  i)
         plt.close()
-        exit()
         i += 1
         if i % 5 == 0:
             print "Completion: {:.2f}%".format(float(i) /  nsteps * 100)
         if i == max_steps:
             exit()
+
 
 
 
