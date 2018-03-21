@@ -4,7 +4,7 @@ TO DO:
 
 
 CONCERNS:
-    - velocity vector may not have been totally neglected and I should just
+    - velocity vector may have been totally neglected and I should just
       used orientation times the propulsion strength
 '''
 import copy
@@ -118,7 +118,7 @@ def get_density_mode_data(filename):
     step        = np.array(full['step'])
     time        = np.array(full['time'])
     value       = np.array(full['value'])
-    wavevector = np.array(full['wavevector'])
+    wavevector  = np.array(full['wavevector'])
 
     H5.close()
 
@@ -126,6 +126,23 @@ def get_density_mode_data(filename):
 
     return step, time, value, wavevector
 
+def get_velocity_mode_data(filename):
+    # open and read data file
+    H5 = h5py.File(filename, 'r')
+    
+    full        = H5['structure/all/velocity_mode']
+    step        = np.array(full['step'])
+    time        = np.array(full['time'])
+    value       = np.array(full['value'])
+    wavevector  = np.array(full['wavevector'])
+
+    H5.close()
+
+    sh = value.shape
+    value = value.reshape( (sh[0], sh[1], sh[2] / 2, -1 ) )
+    value = value[:,:,:,0] + value[:,:,:,1] * 1j
+
+    return step, time, value, wavevector
 
 
 def get_v_0(filename):
@@ -142,6 +159,7 @@ def get_v_0(filename):
                 a = line[line.find("(")+2:line.find(")")].split(',')
                 b = [float(i) for i in a]
     return b
+
 
 def get_box_dims(filename):
 
@@ -268,4 +286,196 @@ def plot_cells(box, cell_length):
         plt.axhline(i *cell_length - box[0] / 2 )
         plt.axvline(i *cell_length - box[0] / 2 )
 
+def full_ordered_frequencies_1d(array):
+    return np.concatenate( ( -array[:0:-1], array[:-1]) )
+
+def full_ordered_modes_2d(array):
+    # this takes an array of positive frequencies and mirrors it about both
+    # (2d) axes to have something that fftshift can work with
+    array = np.concatenate( ( np.conj( array[:,:0:-1] ), array[:,:-1]), axis = 1)
+    array = np.concatenate( ( np.conj( array[:0:-1] ), array[:-1]), axis = 0)
+    return array
+
+def normalize_density_mode_matrix(density):
+    density[density < 0] = 0
+    summ = np.sum(density)
+    density = density / summ
+    return density
+
+def normalize_other_mode_matrix(mat, density):
+    #summ = np.sum(density)
+    return mat
+
+
+def new_wavevector_module(full_kx, full_ky, full_Z, ft_Z, axarray, positions,
+        box_length):
+
+    full_x = np.linspace(-box_length / 2, box_length / 2, full_Z.shape[0])
+    full_y = np.linspace(-box_length / 2, box_length / 2, full_Z.shape[0])
+
+    # quadrant plot
+    ax = axarray[0]
+
+    ax[0].scatter( positions[:,0], positions[:,1] )
+    ax[0].set_title("Actual Particle Distribution")
+    ax[0].set_aspect('equal')
+    ax[0].set_xlim([ - box_length / 2, box_length / 2 ] )
+    ax[0].set_ylim([ - box_length / 2, box_length / 2 ] )
+
+    cont = ax[1].contourf( full_x, full_y, ft_Z )
+    ax[1].set_aspect('equal')
+    ax[1].set_title("IFT (obtained particle distribution)")
+    cax = plt.axes([0.90, 0.1, 0.025, 0.35])
+    plt.colorbar(cont, cax=cax)
+
+
+    ax = axarray[1]
+
+    ax[0].set_aspect('equal')
+    ax[0].contourf(full_kx, full_ky, np.abs( full_Z ))
+    ax[0].set_title('Positive and negative frequencies')
+
+    ax[1].scatter( positions[:,0], positions[:,1], zorder = 10)
+    cont = ax[1].contourf( full_x, full_y, ft_Z )
+    ax[1].set_aspect('equal')
+    ax[1].set_title("IFT and Actual Positions")
+    cax = plt.axes([0.90, 0.1, 0.025, 0.35])
+    plt.colorbar(cont, cax=cax)
+
+
+def quadrant_to_full(kx, ky, Z, axarray, positions, box_length):
+    '''
+    x and y are one dimensional positive frequency arrays
+    Z is the complex valued matrix that corresponds to the frequencies of the x
+    and y vectors
+    '''
+
+
+    full_kx = full_ordered_frequencies_1d( kx )
+    full_ky = full_ordered_frequencies_1d( ky )
+    full_Z = full_ordered_modes_2d( Z )
+
+    full_x = np.linspace(-box_length / 2, box_length / 2, full_Z.shape[0])
+    full_y = np.linspace(-box_length / 2, box_length / 2, full_Z.shape[0])
+
+    # quadrant plot
+    ax = axarray[0]
+    ax[0].set_aspect('equal')
+    ax[0].contourf(kx, ky, np.abs( Z ))
+    ax[0].set_title('Positive Frequencies')
+
+    ax[1].scatter( positions[:,0], positions[:,1] )
+    ax[1].set_title("Example Particle Distribution")
+    ax[1].set_aspect('equal')
+    ax[1].set_xlim([ - box_length / 2, box_length / 2])
+    ax[1].set_ylim([ - box_length / 2, box_length / 2])
+
+    # full plot
+    ax = axarray[1]
+    ax[0].set_aspect('equal')
+    ax[0].contourf(full_kx, full_ky, np.abs( full_Z ))
+    ax[0].set_title('Positive and negative frequencies')
+
+    cont = ax[1].contourf( full_x, full_y, np.fft.fftshift(np.fft.ifft2(
+        np.fft.ifftshift( full_Z ) ))) 
+    #cont = ax[1].contourf( np.fft.ifft2( np.fft.ifftshift( full_Z ) ))
+    ax[1].set_aspect('equal')
+    ax[1].set_title("IFT (obtained particle distribution)")
+    cax = plt.axes([0.90, 0.1, 0.025, 0.35])
+    plt.colorbar(cont, cax=cax)
+
+
+def populate_modes_matrix(wavevector, mode_snapshot, sigma):
+
+    # make ordered lists of the values of k that were used
+    # make it some sort of array so it's more easily generalized into 3d
+    # k$ind are the indicies of wavevector that contain the unique
+    # values of wavevector
+    kx = np.unique( wavevector[:,0] )
+    ky = np.unique( wavevector[:,1] )
+
+    # make an n-dimensional matrix for holding the mode data
+    modes_matrix = np.zeros((len(ky), len(kx)), dtype=complex)
+
+    for i in range(mode_snapshot.shape[0]):
+        # the indicies of the area in which the components of wavevector should
+        # go are found
+        k1_ind = np.where(kx <= wavevector[i,0])[0][-1]
+        k2_ind = np.where(ky <= wavevector[i,1])[0][-1]
+        k_vec = np.array( [ kx[ k1_ind ], ky[ k2_ind ] ] )
+        #r_0 = np.array( [1.0, 0.0], dtype = float )
+        if modes_matrix[k2_ind, k1_ind] == 0:
+
+            # no gaussian
+            gaussian = 1.
+
+            # fully fourier transformed gaussian with r_0
+            # how to define r_0!?
+            #gaussian = np.exp( -1j * ( np.dot(k_vec, r_0) ) - 0.5 * sigma ** 2
+            #* ( kx[k1_ind]**2 + ky[k2_ind]**2 ) )
+
+            # only real part of exponent ( without r_0 )
+            #gaussian = np.exp( - 0.5 * sigma ** 2 * ( kx[k1_ind]**2 +
+            #ky[k2_ind]**2 ) )
+
+            # with prefactors and only real part of exponent
+            #gaussian = sigma * np.sqrt( 2 * np.pi) * np.exp( - 0.5 * sigma **
+            #2 * ( kx[k1_ind]**2 + ky[k2_ind]**2 ) )
+
+            modes_matrix[k2_ind, k1_ind] = gaussian * mode_snapshot[i]
+        else:
+            print 'Warning: Uneccesary mode recalculation.'
+            if modes_matrix[k2_ind, k1_ind] != mode_snapshot[i]:
+                print "Error: Mode caclulated doubly and differently for a\
+                        wavevector."
+                #exit()
+        #exit()
+
+    return kx, ky, modes_matrix
+
+def gaussian_spacing_dx( sigma ):
+    return 2 * sigma * np.sqrt( 2 * np.log( 2 ) )
+
+def gaussian_spacing_sigma( dx ):
+    return dx / ( 2 * np.sqrt( 2 * np.log( 2 ) ) )
+
+def print_modes_sorted_by_wavevector(wavevector, modes):
+    # sorting the data first by k1, then by k2
+    ind = np.lexsort((wavevector[:,1], wavevector[:,0]))
+    array = wavevector[ind]
+    modes_ordered = modes[ind]
+    # outputting the ordered k vectors and their corresponding absolute values
+    # amplitudes
+    for i, val in enumerate(array):
+        print val, np.abs(modes_ordered[i])
+
+
+def calculate_velocity_mode_snapshot(position_snapshot, orientation_snapshot, v_0, wavevector):
+    v_modes_snapshot = np.zeros_like(wavevector, dtype=complex)
+    dimension = wavevector.shape[1]
+
+    for ik, k in enumerate( wavevector ):
+        dummy = np.zeros(dimension, dtype=complex)
+        for ir, r in enumerate( position_snapshot ):
+            dummy += v_0 * orientation_snapshot[ir] * np.exp( 1j * np.dot( k,
+                position_snapshot[ir] ) )
+        v_modes_snapshot[ik] = dummy
+
+    return v_modes_snapshot
+    
+def get_velocity_modes(positions, orientations, v_0, wavevector, cutoff_time=None):
+    # structuring the v_modes object, allowing for a cutoff time so not all
+    # time steps have to be calculated
+    if cutoff_time:
+        v_modes = np.zeros( (cutoff_time, wavevector.shape[0],
+            wavevector.shape[1] ), dtype=complex)
+    else:
+        v_modes = np.zeros( (positions.shape[0], wavevector.shape[0],
+            wavevector.shape[1] ), dtype=complex)
+
+    for iv, v  in enumerate( v_modes ):
+        v_modes[iv] = calculate_velocity_mode_snapshot( positions[iv],
+                orientations[iv], v_0, wavevector)
+
+    return v_modes
 
