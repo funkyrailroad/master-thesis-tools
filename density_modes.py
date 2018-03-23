@@ -35,6 +35,18 @@ def main(filename):
 
     i = 0
     for position_snapshot, modes_snapshot in zip(bounded_position, modes):
+
+        print nparticles
+
+        position_snapshot = np.array([ [0, 0]
+                                      ,[1, 0]
+                                      ,[1.2, 0]
+                                      ,[1.2, 0]
+                                      ,[1.2, 0]
+                                      ,[1.2, 0]
+                                      ,[1.2, 0]
+                                      ,[-2.5, -2.5]
+                                        ])
         snap2 = calculate_density_mode_snapshot(wavevector, position_snapshot)
 
         modes_snapshot = snap2
@@ -45,6 +57,16 @@ def main(filename):
         # imaginary part is very small to begin with
         ft_modes = np.real( np.fft.fftshift(np.fft.ifft2( np.fft.ifftshift(
             modes_matrix ) )) )
+
+        # plotting square on contour plot ( unneeded )
+        maxind = np.unravel_index(np.argmax(ft_modes) , ft_modes.shape)
+        print maxind
+        a = slice(0, 4)
+        b = slice(0, 4)
+        #ft_modes[a,b] = 1
+        print np.sum(ft_modes[a,b])
+        print np.sum(ft_modes)
+        print box
 
         #ft_modes = normalize_density_mode_matrix(ft_modes, nparticles)
 
