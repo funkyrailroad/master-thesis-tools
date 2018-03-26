@@ -306,56 +306,87 @@ def normalize_other_mode_matrix(mat, density):
     #summ = np.sum(density)
     return mat
 
+def plot_particles(positions, box_length, ax):
+    ax.scatter( positions[:,0], positions[:,1] )
+    ax.set_title("Actual Particle Distribution")
+    ax.set_aspect('equal')
+    ax.set_xlim([ - box_length / 2, box_length / 2 ] )
+    ax.set_ylim([ - box_length / 2, box_length / 2 ] )
 
+def plot_ift(x, y, z, ax):
+    N = 80
+    cont = ax.contourf( x, y, z, N)
+    ax.set_aspect('equal')
+    ax.set_title("IFT (obtained particle distribution)")
+    cax = plt.axes([0.90, 0.1, 0.025, 0.35])
+    plt.colorbar(cont, cax=cax)
+
+def plot_density_modes(kx, ky, Z, ax):
+    ax.set_aspect('equal')
+    ax.contourf(kx, ky, np.abs( Z ))
+    ax.set_title('Positive and negative frequencies')
+
+def plot_ift_and_particles(positions, x, y, z, ax):
+    N = 80
+    ax.scatter( positions[:,0], positions[:,1], zorder = 10)
+    cont = ax.contourf( x, y, z , N)
+    ax.set_aspect('equal')
+    ax.set_title("IFT and Actual Positions")
+    cax = plt.axes([0.90, 0.1, 0.025, 0.35])
+    plt.colorbar(cont, cax=cax)
+
+# TODO make a function for each plot, this mega plot function is garbage
 def new_wavevector_module(full_kx, full_ky, full_Z, ft_Z, axarray, positions,
         box_length):
-
 
     N = 80  # contour plot fine resolution
     full_x = np.linspace(-box_length / 2, box_length / 2, full_Z.shape[0])
     full_y = np.linspace(-box_length / 2, box_length / 2, full_Z.shape[0])
+    print full_x
+
+    # slice buffer index, set to a high value to have 9 periodic plots
+    a = 20
+    xlist_pad = np.concatenate( (full_x[-a:] - box_length, full_x, full_x[:a] +
+        box_length ) )
+    ylist_pad = np.concatenate( (full_y[-a:] - box_length, full_y, full_y[:a] +
+        box_length ) )
+
+    X_pad, Y_pad = np.meshgrid(xlist_pad, ylist_pad)
+    print X_pad.shape
+    dx = abs( xlist_pad[1] - xlist_pad[0] )
+
+
+    big_rho = np.concatenate((ft_Z[-a:], ft_Z, ft_Z[:a]), axis = 0)
+    big_rho = np.concatenate((big_rho[:,-a:], big_rho, big_rho[:,:a]), axis = 1)
 
     ax = axarray[0]
 
     # particle distrubtion
-    ax[0].scatter( positions[:,0], positions[:,1] )
-    ax[0].set_title("Actual Particle Distribution")
-    ax[0].set_aspect('equal')
-    ax[0].set_xlim([ - box_length / 2, box_length / 2 ] )
-    ax[0].set_ylim([ - box_length / 2, box_length / 2 ] )
+    plot_particles(positions, box_length, ax[0])
 
     # IFT
-    cont = ax[1].contourf( full_x, full_y, ft_Z, N)
-    ax[1].set_aspect('equal')
-    ax[1].set_title("IFT (obtained particle distribution)")
-    cax = plt.axes([0.90, 0.1, 0.025, 0.35])
-    plt.colorbar(cont, cax=cax)
+    plot_ift(xlist_pad, ylist_pad, big_rho, ax[1])
 
 
     ax = axarray[1]
 
     # density modes
-    ax[0].set_aspect('equal')
-    ax[0].contourf(full_kx, full_ky, np.abs( full_Z ))
-    ax[0].set_title('Positive and negative frequencies')
+    plot_density_modes(full_kx, full_ky, full_Z, ax[0])
+
+
+    # TODO get an easy way to go from box coordinates to array indicies
+
+    #f, axarr = plt.subplots(1, 2)
+    #ax[1] = axarr[0]
+
+
+    #TODO if relevant, I'll have to include a periodic implementation of the particle positions
+    #plot_ift(xlist_pad, ylist_pad, big_rho, ax[1])
+    #plot_particles(positions, box_length, ax[1])
 
     # particles and IFT with periodic boundary positions
 
-    xlist_pad = np.linspace( -box_length / 2. - box_length, box_length / 2. +
-            box_length,  full_Z.shape[0] * 3 )
-    ylist_pad = np.linspace( -box_length / 2. - box_length, box_length / 2. +
-            box_length,  full_Z.shape[0] * 3 )
-    X_pad, Y_pad = np.meshgrid(xlist_pad, ylist_pad)
-
-    big_rho = np.concatenate((ft_Z, ft_Z, ft_Z), axis = 0)
-    big_rho = np.concatenate((big_rho, big_rho, big_rho), axis = 1)
-
-    ax[1].scatter( positions[:,0], positions[:,1], zorder = 10)
-    cont = ax[1].contourf( X_pad, Y_pad, big_rho , N)
-    ax[1].set_aspect('equal')
-    ax[1].set_title("IFT and Actual Positions")
-    cax = plt.axes([0.90, 0.1, 0.025, 0.35])
-    plt.colorbar(cont, cax=cax)
+    plot_ift_and_particles(positions, X_pad, Y_pad, big_rho, ax[1])
 
 
 def quadrant_to_full(kx, ky, Z, axarray, positions, box_length):
