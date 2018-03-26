@@ -36,8 +36,6 @@ def main(filename):
     i = 0
     for position_snapshot, modes_snapshot in zip(bounded_position, modes):
 
-        print nparticles
-
         position_snapshot = np.array([ [0, 0]
                                       ,[1, 0]
                                       ,[1.2, 0]
@@ -46,10 +44,18 @@ def main(filename):
                                       ,[1.2, 0]
                                       ,[1.2, 0]
                                       ,[-2.5, -2.5]
+                                      ,[2.5, 2.5]
+                                      ,[2.5, -2.5]
+                                      ,[-2.5, 2.5]
+                                      ,[-0.5, -0.5]
+                                      ,[0.5, 0.5]
+                                      ,[0.5, -0.5]
+                                      ,[-0.5, 0.5]
+                                      ,[2.5, 0.0]
                                         ])
         snap2 = calculate_density_mode_snapshot(wavevector, position_snapshot)
-
         modes_snapshot = snap2
+
         k1_u, k2_u, modes_matrix = populate_modes_matrix(wavevector,
                 modes_snapshot, sigma)
 
@@ -60,13 +66,6 @@ def main(filename):
 
         # plotting square on contour plot ( unneeded )
         maxind = np.unravel_index(np.argmax(ft_modes) , ft_modes.shape)
-        print maxind
-        a = slice(0, 4)
-        b = slice(0, 4)
-        #ft_modes[a,b] = 1
-        print np.sum(ft_modes[a,b])
-        print np.sum(ft_modes)
-        print box
 
         #ft_modes = normalize_density_mode_matrix(ft_modes, nparticles)
 
@@ -74,7 +73,8 @@ def main(filename):
         new_wavevector_module( k1_u, k2_u, modes_matrix, ft_modes, axarr,
                 position_snapshot, box[0] ) 
         plt.savefig("antialignment/movie-test/density-modes-%06d.png" %  i)
-        plt.close()
+        plt.show()
+        #plt.close()
         i += 1
         if i % 5 == 0:
             print "Completion: {:.2f}%".format(float(i) /  nsteps * 100)
