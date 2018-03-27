@@ -335,14 +335,11 @@ def plot_ift_and_particles(positions, x, y, z, ax):
     cax = plt.axes([0.90, 0.1, 0.025, 0.35])
     plt.colorbar(cont, cax=cax)
 
-# TODO make a function for each plot, this mega plot function is garbage
-def new_wavevector_module(full_kx, full_ky, full_Z, ft_Z, axarray, positions,
-        box_length):
-
+def full_density_position_plots(full_kx, full_ky, full_Z, ft_Z, axarray,
+        positions, box_length):
     N = 80  # contour plot fine resolution
     full_x = np.linspace(-box_length / 2, box_length / 2, full_Z.shape[0])
     full_y = np.linspace(-box_length / 2, box_length / 2, full_Z.shape[0])
-    print full_x
 
     # slice buffer index, set to a high value to have 9 periodic plots
     a = 20
@@ -352,7 +349,59 @@ def new_wavevector_module(full_kx, full_ky, full_Z, ft_Z, axarray, positions,
         box_length ) )
 
     X_pad, Y_pad = np.meshgrid(xlist_pad, ylist_pad)
-    print X_pad.shape
+    dx = abs( xlist_pad[1] - xlist_pad[0] )
+
+
+    big_rho = np.concatenate((ft_Z[-a:], ft_Z, ft_Z[:a]), axis = 0)
+    big_rho = np.concatenate((big_rho[:,-a:], big_rho, big_rho[:,:a]), axis = 1)
+
+    ax = axarray[0]
+
+    # particle distrubtion
+    plot_particles(positions, box_length, ax[0])
+
+    # IFT
+    plot_ift(xlist_pad, ylist_pad, big_rho, ax[1])
+
+
+    ax = axarray[1]
+
+    # density modes
+    plot_density_modes(full_kx, full_ky, full_Z, ax[0])
+
+
+    # TODO get an easy way to go from box coordinates to array indicies
+
+    #f, axarr = plt.subplots(1, 2)
+    #ax[1] = axarr[0]
+
+
+    #TODO if relevant, I'll have to include a periodic implementation of the particle positions
+    #plot_ift(xlist_pad, ylist_pad, big_rho, ax[1])
+    #plot_particles(positions, box_length, ax[1])
+
+    # particles and IFT with periodic boundary positions
+
+    plot_ift_and_particles(positions, X_pad, Y_pad, big_rho, ax[1])
+
+
+
+# TODO make a function for each plot, this mega plot function is garbage
+def full_velocity_orientation_plots(full_kx, full_ky, full_Z, ft_Z, axarray,
+        positions, box_length):
+
+    N = 80  # contour plot fine resolution
+    full_x = np.linspace(-box_length / 2, box_length / 2, full_Z.shape[0])
+    full_y = np.linspace(-box_length / 2, box_length / 2, full_Z.shape[0])
+
+    # slice buffer index, set to a high value to have 9 periodic plots
+    a = 20
+    xlist_pad = np.concatenate( (full_x[-a:] - box_length, full_x, full_x[:a] +
+        box_length ) )
+    ylist_pad = np.concatenate( (full_y[-a:] - box_length, full_y, full_y[:a] +
+        box_length ) )
+
+    X_pad, Y_pad = np.meshgrid(xlist_pad, ylist_pad)
     dx = abs( xlist_pad[1] - xlist_pad[0] )
 
 
