@@ -38,19 +38,6 @@ def main(filename):
 
         position_snapshot = np.array([ [0, 0]
                                       ,[1, 0]
-                                      ,[1.2, 0]
-                                      ,[1.2, 0]
-                                      ,[1.2, 0]
-                                      ,[1.2, 0]
-                                      ,[1.2, 0]
-                                      ,[-2.5, -2.5]
-                                      ,[2.5, 2.5]
-                                      ,[2.5, -2.5]
-                                      ,[-2.5, 2.5]
-                                      ,[-0.5, -0.5]
-                                      ,[0.5, 0.5]
-                                      ,[0.5, -0.5]
-                                      ,[-0.5, 0.5]
                                       ,[2.5, 0.0]
                                         ])
         snap2 = calculate_density_mode_snapshot(wavevector, position_snapshot)
@@ -70,7 +57,7 @@ def main(filename):
         #ft_modes = normalize_density_mode_matrix(ft_modes, nparticles)
 
         f, axarr = plt.subplots(2, 2)
-        new_wavevector_module( k1_u, k2_u, modes_matrix, ft_modes, axarr,
+        full_density_position_plots( k1_u, k2_u, modes_matrix, ft_modes, axarr,
                 position_snapshot, box[0] ) 
         plt.savefig("antialignment/movie-test/density-modes-%06d.png" %  i)
         plt.show()
