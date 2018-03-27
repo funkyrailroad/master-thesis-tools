@@ -31,17 +31,20 @@ def main(filename):
     nsteps = orientation.shape[0]
     nparticles = orientation.shape[1]
     sigma = 0.1
-    max_steps = 1
+    max_steps = None
+    print "Total steps: ", nsteps
 
     i = 0
     for position_snapshot, modes_snapshot in zip(bounded_position, modes):
 
+        '''
         position_snapshot = np.array([ [0, 0]
                                       ,[1, 0]
                                       ,[2.5, 0.0]
                                         ])
         snap2 = calculate_density_mode_snapshot(wavevector, position_snapshot)
         modes_snapshot = snap2
+        '''
 
         k1_u, k2_u, modes_matrix = populate_modes_matrix(wavevector,
                 modes_snapshot, sigma)
@@ -58,10 +61,10 @@ def main(filename):
 
         f, axarr = plt.subplots(2, 2)
         full_density_position_plots( k1_u, k2_u, modes_matrix, ft_modes, axarr,
-                position_snapshot, box[0] ) 
+                position_snapshot, box ) 
         plt.savefig("antialignment/movie-test/density-modes-%06d.png" %  i)
-        plt.show()
-        #plt.close()
+        #plt.show()
+        plt.close()
         i += 1
         if i % 5 == 0:
             print "Completion: {:.2f}%".format(float(i) /  nsteps * 100)

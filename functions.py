@@ -335,8 +335,13 @@ def plot_ift_and_particles(positions, x, y, z, ax):
     cax = plt.axes([0.90, 0.1, 0.025, 0.35])
     plt.colorbar(cont, cax=cax)
 
+def draw_simulation_box(ax, box):
+    ax.add_patch(patches.Rectangle( -box / 2, *box, fill = False,
+        color = 'r'))
+
 def full_density_position_plots(full_kx, full_ky, full_Z, ft_Z, axarray,
-        positions, box_length):
+        positions, box):
+    box_length = box[0]
     N = 80  # contour plot fine resolution
     full_x = np.linspace(-box_length / 2, box_length / 2, full_Z.shape[0])
     full_y = np.linspace(-box_length / 2, box_length / 2, full_Z.shape[0])
@@ -362,6 +367,7 @@ def full_density_position_plots(full_kx, full_ky, full_Z, ft_Z, axarray,
 
     # IFT
     plot_ift(xlist_pad, ylist_pad, big_rho, ax[1])
+    draw_simulation_box(ax[1], box)
 
 
     ax = axarray[1]
@@ -372,29 +378,24 @@ def full_density_position_plots(full_kx, full_ky, full_Z, ft_Z, axarray,
 
     # TODO get an easy way to go from box coordinates to array indicies
 
-    #f, axarr = plt.subplots(1, 2)
-    #ax[1] = axarr[0]
-
-
-    #TODO if relevant, I'll have to include a periodic implementation of the particle positions
-    #plot_ift(xlist_pad, ylist_pad, big_rho, ax[1])
-    #plot_particles(positions, box_length, ax[1])
+    # TODO if relevant, I'll have to include a periodic implementation of the particle positions
 
     # particles and IFT with periodic boundary positions
-
     plot_ift_and_particles(positions, X_pad, Y_pad, big_rho, ax[1])
+    draw_simulation_box(ax[1], box)
 
 
 
 # TODO make a function for each plot, this mega plot function is garbage
 def full_velocity_orientation_plots(full_kx, full_ky, full_Z, ft_Z, axarray,
-        positions, box_length):
+        positions, box):
 
     N = 80  # contour plot fine resolution
+    box_length = box[0]
     full_x = np.linspace(-box_length / 2, box_length / 2, full_Z.shape[0])
     full_y = np.linspace(-box_length / 2, box_length / 2, full_Z.shape[0])
 
-    # slice buffer index, set to a high value to have 9 periodic plots
+    # slice buffer index, set to a high value to have the standard 9 periodic plots
     a = 20
     xlist_pad = np.concatenate( (full_x[-a:] - box_length, full_x, full_x[:a] +
         box_length ) )
@@ -415,6 +416,7 @@ def full_velocity_orientation_plots(full_kx, full_ky, full_Z, ft_Z, axarray,
 
     # IFT
     plot_ift(xlist_pad, ylist_pad, big_rho, ax[1])
+    draw_simulation_box(ax[1], box)
 
 
     ax = axarray[1]
@@ -422,20 +424,13 @@ def full_velocity_orientation_plots(full_kx, full_ky, full_Z, ft_Z, axarray,
     # density modes
     plot_density_modes(full_kx, full_ky, full_Z, ax[0])
 
-
     # TODO get an easy way to go from box coordinates to array indicies
 
-    #f, axarr = plt.subplots(1, 2)
-    #ax[1] = axarr[0]
-
-
-    #TODO if relevant, I'll have to include a periodic implementation of the particle positions
-    #plot_ift(xlist_pad, ylist_pad, big_rho, ax[1])
-    #plot_particles(positions, box_length, ax[1])
+    # TODO if relevant, I'll have to include a periodic implementation of the particle positions
 
     # particles and IFT with periodic boundary positions
-
     plot_ift_and_particles(positions, X_pad, Y_pad, big_rho, ax[1])
+    draw_simulation_box(ax[1], box)
 
 
 def quadrant_to_full(kx, ky, Z, axarray, positions, box_length):
@@ -507,15 +502,15 @@ def populate_modes_matrix(wavevector, mode_snapshot, sigma):
             # fully fourier transformed gaussian with r_0
             # how to define r_0!?
             #gaussian = np.exp( -1j * ( np.dot(k_vec, r_0) ) - 0.5 * sigma ** 2
-            #* ( kx[k1_ind]**2 + ky[k2_ind]**2 ) )
+                    #* ( kx[k1_ind]**2 + ky[k2_ind]**2 ) )
 
             # only real part of exponent ( without r_0 )
             #gaussian = np.exp( - 0.5 * sigma ** 2 * ( kx[k1_ind]**2 +
-            #ky[k2_ind]**2 ) )
+                #ky[k2_ind]**2 ) )
 
             # with prefactors and only real part of exponent
-            #gaussian = sigma * np.sqrt( 2 * np.pi) * np.exp( - 0.5 * sigma **
-            #2 * ( kx[k1_ind]**2 + ky[k2_ind]**2 ) )
+            #gaussian = sigma * np.sqrt( 2 * np.pi) * np.exp( - 0.5 * sigma ** 2
+                    #* ( kx[k1_ind]**2 + ky[k2_ind]**2 ) )
 
             modes_matrix[k2_ind, k1_ind] = gaussian * mode_snapshot[i]
         else:
@@ -586,4 +581,24 @@ def get_velocity_modes(positions, orientations, v_0, wavevector, cutoff_time=Non
                 orientations[iv], v_0, wavevector)
 
     return v_modes
+
+
+def coord_to_ind(array, box, r):
+    '''
+    Given an array and box size, this function returns the indicies that
+    correspond to the spatial location r.
+    '''
+    if len(array.shape) != r.shape[0]:
+        print "Error in function coord_to_ind"
+        exit()
+
+    index = np.zeros_like(r, dtype=int)
+
+    dim = r.shape[0]
+    for i in range(len(r)):
+        x = np.linspace(-box[i] / 2, box[i] / 2, array.shape[i])
+        dx = x[1] - x[0]
+        index[dim - 1 - i] = np.floor( ( r[i] - x[0] ) / dx )
+
+    return index
 

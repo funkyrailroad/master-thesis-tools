@@ -36,9 +36,8 @@ def main(filename):
     max_steps = 1
 
 
-
-
-    v_modes = get_velocity_modes( position, orientation, v_0, wavevector, max_steps )
+    #v_modes = get_velocity_modes( position, orientation, v_0, wavevector, max_steps )
+    v_modes = np.zeros_like(position)
     print d_modes.shape
     print v_modes.shape
 
@@ -53,8 +52,8 @@ def main(filename):
                                         #,[ 0.5, -0.5]
                                                      ])
         orientation_snapshot = np.array([  [ 0,    0  ]
-                                          ,[-0.5,  0.0]
-                                          ,[-1.5,  0.0]
+                                          ,[-0.5,  1.0]
+                                          ,[-1.5,  0.2]
                                           #,[-0.5, -0.5]
                                           #,[ 0.5, -0.5]
                                                         ])
@@ -76,8 +75,9 @@ def main(filename):
         ft_d_modes   = np.real( np.fft.fftshift(np.fft.ifft2( np.fft.ifftshift(
             d_modes_matrix ) )) )
 
-        # FIXME the ft_modes here correspond to the orientation, not the
-        # position, and should be plotted as such
+        # NOTE the arrays here are spatial but pertain to the orientation along
+        # a given axis. The arrays are indexed like [y,x] which is opposite the
+        # traditional convention
         ft_v_modes_x = np.real( np.fft.fftshift(np.fft.ifft2( np.fft.ifftshift(
             v_modes_matrix_x ) )) )
         ft_v_modes_y = np.real( np.fft.fftshift(np.fft.ifft2( np.fft.ifftshift(
@@ -95,19 +95,43 @@ def main(filename):
         a = slice(38, 41)
         b = slice(58, 61)
         print np.sum(ft_v_modes_x[a, b])
-        ft_v_modes_x[a, b] = 1
+
+
+        r = np.array([1, 2.])
+        ind = coord_to_ind(ft_v_modes_x, box, r)
+        print ind
+        print ft_v_modes_x[ind]
+        print ft_v_modes_x.shape
+        b = 2
+        #ft_v_modes_x[ind[0]-b:ind[0]+b, ind[1] - b: ind[1] + b] = 1
+
+        #ft_v_modes_x[a, b] = 1
 
         f, axarr = plt.subplots(2, 2)
         #full_velocity_orientation_plots( k1_u, k2_u, d_modes_matrix,
-                #ft_d_modes, axarr, position_snapshot, box[0] )
+                #ft_d_modes, axarr, position_snapshot, box )
         full_velocity_orientation_plots( k1_u, k2_u, v_modes_matrix_x,
-                ft_v_modes_x, axarr, position_snapshot, box[0] )
+                ft_v_modes_x, axarr, position_snapshot, box )
         #full_velocity_orientation_plots( k1_u, k2_u, v_modes_matrix_y,
-                #ft_v_modes_y, axarr, position_snapshot, box[0] )
+                #ft_v_modes_y, axarr, position_snapshot, box )
         #full_velocity_orientation_plots( k1_u, k2_u, v_modes_matrix_z,
-                #ft_v_modes_z, axarr, position_snapshot, box[0] )
+                #ft_v_modes_z, axarr, position_snapshot, box )
         plt.savefig("antialignment/movie-test/velocity-modes-%06d.png" %  i)
         plt.close()
+
+
+        '''
+        plt.quiver(position_snapshot[:,0], position_snapshot[:,1],
+                orientation_snapshot[:,0], orientation_snapshot[:,1], 
+                units = 'height')
+        '''
+
+        print ft_d_modes.shape
+        plt.quiver( ft_v_modes_x, ft_v_modes_y, units = 'height')
+
+        plt.show()
+        exit()
+
         i += 1
         if i % 5 == 0:
             print "Completion: {:.2f}%".format(float(i) /  nsteps * 100)
