@@ -33,15 +33,36 @@ def main(filename):
     nsteps = orientation.shape[0]
     nparticles = orientation.shape[1]
     sigma = 0.1
-    max_steps = 5
+    max_steps = 1
 
-    orientation = -orientation
+
+
+
     v_modes = get_velocity_modes( position, orientation, v_0, wavevector, max_steps )
     print d_modes.shape
     print v_modes.shape
 
     i = 0
-    for position_snapshot, modes_snapshot in zip(bounded_position, v_modes):
+    for position_snapshot, orientation_snapshot, modes_snapshot in zip(bounded_position, orientation, v_modes):
+
+        position_snapshot = np.array([   [ 0,    0  ]
+                                        ,[ 0.5,  0.0]
+                                        ,[ 1.5,  0.0]
+                                        #,[-0.5,  0.5]
+                                        #,[-0.5, -0.5]
+                                        #,[ 0.5, -0.5]
+                                                     ])
+        orientation_snapshot = np.array([  [ 0,    0  ]
+                                          ,[-0.5,  0.0]
+                                          ,[-1.5,  0.0]
+                                          #,[-0.5, -0.5]
+                                          #,[ 0.5, -0.5]
+                                                        ])
+
+        modes_snapshot = calculate_velocity_mode_snapshot(position_snapshot, orientation_snapshot, v_0, wavevector)
+
+
+
         print orientation[i]
         k1_u, k2_u, d_modes_matrix = populate_modes_matrix(wavevector,
                 d_modes[i,:], sigma)
@@ -52,8 +73,11 @@ def main(filename):
         #k1_u, k2_u, v_modes_matrix_z = populate_modes_matrix(wavevector,
                 #modes_snapshot[:,2], sigma)
 
-        ft_d_modes = np.real( np.fft.fftshift(np.fft.ifft2( np.fft.ifftshift(
+        ft_d_modes   = np.real( np.fft.fftshift(np.fft.ifft2( np.fft.ifftshift(
             d_modes_matrix ) )) )
+
+        # FIXME the ft_modes here correspond to the orientation, not the
+        # position, and should be plotted as such
         ft_v_modes_x = np.real( np.fft.fftshift(np.fft.ifft2( np.fft.ifftshift(
             v_modes_matrix_x ) )) )
         ft_v_modes_y = np.real( np.fft.fftshift(np.fft.ifft2( np.fft.ifftshift(
@@ -66,15 +90,22 @@ def main(filename):
         #ft_v_modes_y = normalize_other_mode_matrix( ft_v_modes_y, ft_d_modes)
         #ft_v_modes_z = normalize_other_mode_matrix( ft_v_modes_z, ft_d_modes)
 
+        maxind = np.unravel_index(np.argmax(ft_v_modes_x) , ft_v_modes_x.shape)
+        print maxind
+        a = slice(38, 41)
+        b = slice(58, 61)
+        print np.sum(ft_v_modes_x[a, b])
+        ft_v_modes_x[a, b] = 1
+
         f, axarr = plt.subplots(2, 2)
-        #new_wavevector_module( k1_u, k2_u, d_modes_matrix, ft_d_modes, axarr,
-                #position_snapshot, box[0] )
-        #new_wavevector_module( k1_u, k2_u, v_modes_matrix_x, ft_v_modes_x, axarr,
-                #position_snapshot, box[0] )
-        new_wavevector_module( k1_u, k2_u, v_modes_matrix_y, ft_v_modes_y, axarr,
-                position_snapshot, box[0] )
-        #new_wavevector_module( k1_u, k2_u, v_modes_matrix_z, ft_v_modes_z, axarr,
-                #position_snapshot, box[0] )
+        #full_velocity_orientation_plots( k1_u, k2_u, d_modes_matrix,
+                #ft_d_modes, axarr, position_snapshot, box[0] )
+        full_velocity_orientation_plots( k1_u, k2_u, v_modes_matrix_x,
+                ft_v_modes_x, axarr, position_snapshot, box[0] )
+        #full_velocity_orientation_plots( k1_u, k2_u, v_modes_matrix_y,
+                #ft_v_modes_y, axarr, position_snapshot, box[0] )
+        #full_velocity_orientation_plots( k1_u, k2_u, v_modes_matrix_z,
+                #ft_v_modes_z, axarr, position_snapshot, box[0] )
         plt.savefig("antialignment/movie-test/velocity-modes-%06d.png" %  i)
         plt.close()
         i += 1
