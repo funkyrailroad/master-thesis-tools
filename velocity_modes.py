@@ -29,40 +29,35 @@ def main(filename):
     dims = get_dimension(filename)
     v_0 = get_v_0(filename)[-1]
     dm_step, dm_time, d_modes, wavevector = get_density_mode_data(filename)
-    #vm_step, vm_time, v_modes, v_wavevector = get_velocity_mode_data(filename)
+    vm_step, vm_time, v_modes, v_wavevector = get_velocity_mode_data(filename)
+
     nsteps = orientation.shape[0]
     nparticles = orientation.shape[1]
     sigma = 0.1
     max_steps = 1
 
+    for i in v_modes[0]:
+        print i
+    exit()
 
-    #v_modes = get_velocity_modes( position, orientation, v_0, wavevector, max_steps )
-    v_modes = np.zeros_like(position)
-    print d_modes.shape
-    print v_modes.shape
+    '''
+    bounded_position = np.array([[   [ 0,    0  ]
+                                    ,[ 0.5,  0.0]
+                                    ,[ 1.5,  0.0]
+                                                 ]])
+    orientation = np.array([[  [ 0,    0  ]
+                              ,[-0.5,  1.0]
+                              ,[-1.5,  0.2]
+                                            ]])
+    '''
+
+    #v_modes = get_velocity_modes( bounded_position, orientation, v_0, wavevector, max_steps )
+
+    
 
     i = 0
     for position_snapshot, orientation_snapshot, modes_snapshot in zip(bounded_position, orientation, v_modes):
 
-        position_snapshot = np.array([   [ 0,    0  ]
-                                        ,[ 0.5,  0.0]
-                                        ,[ 1.5,  0.0]
-                                        #,[-0.5,  0.5]
-                                        #,[-0.5, -0.5]
-                                        #,[ 0.5, -0.5]
-                                                     ])
-        orientation_snapshot = np.array([  [ 0,    0  ]
-                                          ,[-0.5,  1.0]
-                                          ,[-1.5,  0.2]
-                                          #,[-0.5, -0.5]
-                                          #,[ 0.5, -0.5]
-                                                        ])
-
-        modes_snapshot = calculate_velocity_mode_snapshot(position_snapshot, orientation_snapshot, v_0, wavevector)
-
-
-
-        print orientation[i]
         k1_u, k2_u, d_modes_matrix = populate_modes_matrix(wavevector,
                 d_modes[i,:], sigma)
         k1_u, k2_u, v_modes_matrix_x = populate_modes_matrix(wavevector,
@@ -91,7 +86,6 @@ def main(filename):
         #ft_v_modes_z = normalize_other_mode_matrix( ft_v_modes_z, ft_d_modes)
 
         maxind = np.unravel_index(np.argmax(ft_v_modes_x) , ft_v_modes_x.shape)
-        print maxind
         a = slice(38, 41)
         b = slice(58, 61)
         print np.sum(ft_v_modes_x[a, b])
@@ -99,9 +93,6 @@ def main(filename):
 
         r = np.array([1, 2.])
         ind = coord_to_ind(ft_v_modes_x, box, r)
-        print ind
-        print ft_v_modes_x[ind]
-        print ft_v_modes_x.shape
         b = 2
         #ft_v_modes_x[ind[0]-b:ind[0]+b, ind[1] - b: ind[1] + b] = 1
 
@@ -117,6 +108,7 @@ def main(filename):
         #full_velocity_orientation_plots( k1_u, k2_u, v_modes_matrix_z,
                 #ft_v_modes_z, axarr, position_snapshot, box )
         plt.savefig("antialignment/movie-test/velocity-modes-%06d.png" %  i)
+        plt.show()
         plt.close()
 
 
@@ -126,7 +118,6 @@ def main(filename):
                 units = 'height')
         '''
 
-        print ft_d_modes.shape
         plt.quiver( ft_v_modes_x, ft_v_modes_y, units = 'height')
 
         plt.show()
