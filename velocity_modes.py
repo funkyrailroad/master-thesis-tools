@@ -38,7 +38,11 @@ def main(filename):
 
     for i in v_modes[0]:
         print i
+        exit()
+
     exit()
+    for i in v_modes[0]:
+        print i
 
     '''
     bounded_position = np.array([[   [ 0,    0  ]
